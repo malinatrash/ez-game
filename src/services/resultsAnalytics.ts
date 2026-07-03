@@ -460,7 +460,7 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     const ratio = gap / maxScore
     if (ratio <= 0.1) {
       funFacts.push({ icon: '😬', text: `Финиш на нервах: ${ranked[0].name} обошёл ${ranked[1].name} всего на ${gap} очков` })
-    } else if (ratio >= 0.8) {
+    } else if (ratio >= 0.5) {
       funFacts.push({ icon: '🚀', text: `Разгром: ${ranked[0].name} обошёл ${ranked[1].name} на ${gap} очков — остальным оставалось только наблюдать` })
     }
   }
