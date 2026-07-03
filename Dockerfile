@@ -29,11 +29,11 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # generate self-signed cert for HTTPS
 RUN mkdir -p /etc/nginx/ssl \
-  && openssl req -x509 -nodes -days 365 \
-      -newkey rsa:2048 \
-      -keyout /etc/nginx/ssl/selfsigned.key \
-      -out /etc/nginx/ssl/selfsigned.crt \
-      -subj "/CN=localhost"
+    && openssl req -x509 -nodes -days 365 \
+    -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/selfsigned.key \
+    -out /etc/nginx/ssl/selfsigned.crt \
+    -subj "/CN=localhost"
 
 # custom nginx config (SPA history fallback)
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
