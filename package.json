@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker build -t svo-game .",
+    "docker:run": "docker run -d -p 80:80 -p 443:443 --name svo-game svo-game",
+    "docker:rebuild": "docker build -t svo-game . && docker stop svo-game 2>/dev/null || true && docker rm svo-game 2>/dev/null || true && docker run -d -p 80:80 -p 443:443 --name svo-game svo-game"
   },
   "dependencies": {
     "@vueuse/motion": "^3.0.3",
