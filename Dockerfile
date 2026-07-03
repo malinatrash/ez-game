@@ -11,10 +11,10 @@ RUN apt-get update \
 COPY package*.json ./
 # use npm ci with lockfile when available, otherwise fall back to npm install
 RUN if [ -f package-lock.json ]; then \
-            npm ci --prefer-offline --no-audit --no-fund; \
-        else \
-            npm install --no-audit --no-fund; \
-        fi
+    npm ci --prefer-offline --no-audit --no-fund; \
+    else \
+    npm install --no-audit --no-fund; \
+    fi
 
 # copy rest and build
 COPY . .
