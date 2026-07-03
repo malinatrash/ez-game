@@ -22,11 +22,21 @@ RUN npm run build
 
 FROM nginx:stable-alpine AS runner
 
+RUN apk add --no-cache openssl
+
 # copy build output
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# generate self-signed cert for HTTPS
+RUN mkdir -p /etc/nginx/ssl \
+  && openssl req -x509 -nodes -days 365 \
+      -newkey rsa:2048 \
+      -keyout /etc/nginx/ssl/selfsigned.key \
+      -out /etc/nginx/ssl/selfsigned.crt \
+      -subj "/CN=localhost"
 
 # custom nginx config (SPA history fallback)
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]
