@@ -13,8 +13,31 @@ export const useBackgroundMusicStore = defineStore('backgroundMusic', {
     hasTrack: false,
     playing: false,
     volume: 1,
+    duckedForMedia: false,
   }),
   actions: {
+    /** Приглушает фоновую музыку на время вопроса с видео/аудио. Не трогает трек, если пользователь уже поставил его на паузу вручную. */
+    pauseForMedia() {
+      if (this.hasTrack && this.playing) {
+        audio.pause()
+        this.playing = false
+        this.duckedForMedia = true
+      }
+    },
+
+    /** Возвращает музыку после ухода с вопроса — только если она была приглушена автоматически, а не выключена вручную. */
+    async resumeFromMedia() {
+      if (!this.duckedForMedia) return
+      this.duckedForMedia = false
+      if (!this.hasTrack) return
+      try {
+        await audio.play()
+        this.playing = true
+      } catch {
+        this.playing = false
+      }
+    },
+
     async loadVolume() {
       const saved = await idb.getSetting<number>(VOLUME_SETTING_KEY)
       this.setVolume(saved ?? 1)
@@ -75,6 +98,7 @@ export const useBackgroundMusicStore = defineStore('backgroundMusic', {
       }
       this.hasTrack = false
       this.playing = false
+      this.duckedForMedia = false
     },
   },
 })

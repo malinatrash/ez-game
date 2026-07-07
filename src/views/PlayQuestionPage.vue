@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGameEditorStore } from '../stores/gameEditor'
 import { usePlayersStore } from '../stores/players'
 import { useSessionStore } from '../stores/session'
+import { useBackgroundMusicStore } from '../stores/backgroundMusic'
 import { restorePlaySessionIfNeeded } from '../services/sessionPersistence'
+import { hasPlayableMedia } from '../services/canvasElements'
 import PlayerSidebar from '../components/play/sidebar/PlayerSidebar.vue'
 import QuestionView from '../components/play/question/QuestionView.vue'
 import ScoreJudgeControls from '../components/play/question/ScoreJudgeControls.vue'
@@ -16,6 +18,7 @@ const router = useRouter()
 const gameStore = useGameEditorStore()
 const playersStore = usePlayersStore()
 const sessionStore = useSessionStore()
+const musicStore = useBackgroundMusicStore()
 
 const gameId = route.params.gameId as string
 const questionId = computed(() => route.params.questionId as string)
@@ -36,6 +39,22 @@ onMounted(async () => {
 })
 
 const question = computed(() => gameStore.findQuestion(questionId.value))
+
+// Видео/аудио в вопросе легко теряется под фоновой музыкой — приглушаем её на время вопроса
+// и возвращаем при выходе на доску.
+watch(
+  question,
+  (q) => {
+    if (q && (hasPlayableMedia(q.content) || hasPlayableMedia(q.answer))) {
+      musicStore.pauseForMedia()
+    }
+  },
+  { immediate: true },
+)
+
+onUnmounted(() => {
+  musicStore.resumeFromMedia()
+})
 
 function openAnswer() {
   revealed.value = true

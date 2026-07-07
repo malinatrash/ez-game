@@ -147,3 +147,7 @@ export function sendToBack(elements: CanvasElement[], id: string): CanvasElement
 export function orderedByZIndex(elements: CanvasElement[]): CanvasElement[] {
   return [...elements].sort((a, b) => a.zIndex - b.zIndex)
 }
+
+export function hasPlayableMedia(elements: CanvasElement[]): boolean {
+  return elements.some((el) => el.type === 'video' || el.type === 'audio')
+}
