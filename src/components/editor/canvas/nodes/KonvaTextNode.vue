@@ -21,6 +21,8 @@ const config = computed(() => ({
   rotation: props.element.rotation,
   text: props.element.value,
   fontSize: props.element.style.fontSize,
+  fontFamily: 'Arial',
+  lineHeight: 1,
   fill: props.element.style.color,
   align: props.element.style.align,
   fontStyle: props.element.style.fontWeight === 'bold' ? 'bold' : 'normal',

@@ -15,16 +15,19 @@ const style = computed(() => ({
   width: `${props.element.w}px`,
   height: `${props.element.h}px`,
   transform: `translate(${props.element.x}px, ${props.element.y}px) rotate(${props.element.rotation}deg)`,
-  transformOrigin: 'center',
+  transformOrigin: '0 0',
 }))
 
 const textStyle = computed(() => {
   if (props.element.type !== 'text') return {}
   return {
+    fontFamily: 'Arial, sans-serif',
     fontSize: `${props.element.style.fontSize}px`,
+    lineHeight: 1,
     color: props.element.style.color,
     textAlign: props.element.style.align,
     fontWeight: props.element.style.fontWeight === 'bold' ? 700 : 400,
+    whiteSpace: 'pre-wrap',
     width: '100%',
     height: '100%',
     display: 'flex',

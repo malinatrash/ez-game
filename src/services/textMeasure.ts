@@ -1,5 +1,6 @@
-const LINE_HEIGHT_RATIO = 1.2
-const VERTICAL_PADDING = 16
+/** Совпадает с Konva.Text: дефолтный lineHeight там — 1 (без доп. интерлиньяжа) и без padding. */
+const LINE_HEIGHT_RATIO = 1
+const VERTICAL_PADDING = 4
 const MIN_HEIGHT = 40
 
 let measureCtx: CanvasRenderingContext2D | null = null
@@ -14,7 +15,7 @@ function getMeasureCtx(): CanvasRenderingContext2D {
 function countWrappedLines(text: string, fontSize: number, width: number, fontFamily = 'Arial'): number {
   const ctx = getMeasureCtx()
   ctx.font = `${fontSize}px ${fontFamily}`
-  const availableWidth = Math.max(10, width - 16)
+  const availableWidth = Math.max(10, width)
   let total = 0
   for (const paragraph of text.split('\n')) {
     if (paragraph === '') {
