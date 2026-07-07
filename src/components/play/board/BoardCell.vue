@@ -7,14 +7,12 @@ const emit = defineEmits<{ select: [] }>()
 
 <template>
   <button class="cell" :class="{ answered, bonus: question.settings.isBonus }" :disabled="answered" @click="emit('select')">
-    <span v-if="!answered && question.settings.catInTheBag" class="cat-badge" title="Кот в мешке">🐱</span>
     {{ answered ? '' : question.cost }}
   </button>
 </template>
 
 <style scoped>
 .cell {
-  position: relative;
   height: var(--size-board-cell-height);
   min-width: var(--size-board-cell-min-width);
   flex: 1;
@@ -29,13 +27,6 @@ const emit = defineEmits<{ select: [] }>()
     box-shadow var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard),
     opacity var(--duration-slow) var(--ease-standard);
-}
-.cat-badge {
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: var(--font-size-md);
-  line-height: 1;
 }
 .cell:hover:not(:disabled) {
   border-color: var(--color-accent-border);
