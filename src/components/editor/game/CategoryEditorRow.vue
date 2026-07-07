@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import type { Category } from '../../../types/game'
+import type { Category, Question } from '../../../types/game'
 import { useGameEditorStore } from '../../../stores/gameEditor'
 import { confirmDialog } from '../../../composables/useConfirm'
 import UiButton from '../../common/UiButton.vue'
@@ -11,8 +12,23 @@ const emit = defineEmits<{ moveUp: []; moveDown: []; remove: [] }>()
 const store = useGameEditorStore()
 const router = useRouter()
 
-function addQuestion() {
-  store.addQuestion(props.category.id, 100)
+// Строгая сетка ставок 100..1000 — сразу видно, каких вопросов в категории ещё не хватает.
+const GRID_COSTS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
+type Slot = { cost: number; question: Question | undefined }
+
+const slots = computed<Slot[]>(() =>
+  GRID_COSTS.map((cost) => ({ cost, question: props.category.questions.find((q) => q.cost === cost) })),
+)
+
+// Вопросы с нестандартной ставкой (легаси-данные/ручной ввод вне сетки 100-1000) не должны молча
+// теряться из вида — показываем их отдельным рядом под основной сеткой.
+const extraQuestions = computed(() =>
+  [...props.category.questions].filter((q) => !GRID_COSTS.includes(q.cost)).sort((a, b) => a.cost - b.cost),
+)
+
+function addQuestion(cost: number) {
+  store.addQuestion(props.category.id, cost)
 }
 
 async function removeQuestion(questionId: string) {
@@ -36,20 +52,57 @@ function openQuestion(questionId: string) {
     </div>
 
     <ul class="questions">
-      <li v-for="question in category.questions" :key="question.id" class="question-item">
-        <button type="button" class="question" @click="openQuestion(question.id)">{{ question.cost }}</button>
+      <li v-for="slot in slots" :key="slot.cost" class="question-item">
         <button
+          v-if="slot.question"
+          type="button"
+          class="question"
+          @click="openQuestion(slot.question.id)"
+        >
+          {{ slot.question.cost }}
+          <span v-if="slot.question.settings.catInTheBag" class="cat-badge" title="Кот в мешке">🐱</span>
+        </button>
+        <button
+          v-else
+          type="button"
+          class="question hole"
+          :title="`Добавить вопрос за ${slot.cost}`"
+          @click="addQuestion(slot.cost)"
+        >
+          <span class="hole-cost">{{ slot.cost }}</span>
+          <span class="hole-plus">+</span>
+        </button>
+        <button
+          v-if="slot.question"
           type="button"
           class="remove"
           title="Удалить вопрос"
-          @click.stop="removeQuestion(question.id)"
+          @click.stop="removeQuestion(slot.question.id)"
         >
           ×
         </button>
       </li>
     </ul>
 
-    <UiButton variant="ghost" class="add-question" @click="addQuestion">+ Вопрос</UiButton>
+    <div v-if="extraQuestions.length" class="extra">
+      <span class="extra-label">Вне сетки:</span>
+      <ul class="extra-list">
+        <li v-for="question in extraQuestions" :key="question.id" class="question-item">
+          <button type="button" class="question extra-question" @click="openQuestion(question.id)">
+            {{ question.cost }}
+            <span v-if="question.settings.catInTheBag" class="cat-badge" title="Кот в мешке">🐱</span>
+          </button>
+          <button
+            type="button"
+            class="remove"
+            title="Удалить вопрос"
+            @click.stop="removeQuestion(question.id)"
+          >
+            ×
+          </button>
+        </li>
+      </ul>
+    </div>
   </section>
 </template>
 
@@ -98,18 +151,20 @@ function openQuestion(questionId: string) {
   flex-shrink: 0;
 }
 
-.questions {
+.questions,
+.extra-list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-2);
 }
 .question-item {
   position: relative;
 }
 .question {
+  position: relative;
   width: 100%;
   height: 56px;
   border-radius: var(--radius-md);
@@ -130,6 +185,45 @@ function openQuestion(questionId: string) {
 .question:active {
   transform: scale(0.96);
 }
+
+.hole {
+  background: transparent;
+  border: 1.5px dashed var(--color-border);
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  opacity: 0.55;
+}
+.hole-cost {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.hole-plus {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  font-weight: 700;
+}
+.hole:hover {
+  opacity: 1;
+  border-color: var(--color-accent-border);
+  border-style: solid;
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  box-shadow: none;
+}
+
+.cat-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: var(--font-size-md);
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
 .remove {
   position: absolute;
   top: 4px;
@@ -155,7 +249,19 @@ function openQuestion(questionId: string) {
   transform: scale(1.1);
 }
 
-.add-question {
-  align-self: flex-start;
+.extra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-border);
+}
+.extra-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+.extra-question {
+  border-color: var(--color-warning);
 }
 </style>
