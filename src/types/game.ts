@@ -22,11 +22,14 @@ export interface MediaPlaybackOptions {
   muted: boolean
 }
 
+export type ShapeType = 'rectangle' | 'circle'
+
 export type CanvasElement =
   | ({ id: string; type: 'text'; value: string; style: TextStyle } & ElementTransform)
   | ({ id: string; type: 'image'; assetId: string } & ElementTransform)
   | ({ id: string; type: 'video'; assetId: string; playback: MediaPlaybackOptions; label?: string } & ElementTransform)
   | ({ id: string; type: 'audio'; assetId: string; playback: MediaPlaybackOptions; label?: string } & ElementTransform)
+  | ({ id: string; type: 'shape'; shapeType: ShapeType; fill: string } & ElementTransform)
 
 export interface QuestionSettings {
   timeLimitSec: number | null
@@ -34,6 +37,7 @@ export interface QuestionSettings {
   autoReveal: boolean
   hideCostAfterReveal: boolean
   isBonus: boolean
+  catInTheBag: boolean
 }
 
 export interface SideBackground {

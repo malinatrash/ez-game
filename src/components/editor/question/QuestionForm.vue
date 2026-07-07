@@ -45,6 +45,7 @@ function onTimeLimitInput(event: Event) {
         <UiSwitch v-model="question.settings.autoReveal">Авто-открытие ответа</UiSwitch>
         <UiSwitch v-model="question.settings.hideCostAfterReveal">Скрывать стоимость после ответа</UiSwitch>
         <UiSwitch v-model="question.settings.isBonus">Бонусный вопрос</UiSwitch>
+        <UiSwitch v-model="question.settings.catInTheBag">🐱 Кот в мешке</UiSwitch>
       </section>
 
       <section class="card notes-card">

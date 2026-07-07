@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { useAssetUpload } from '../../../composables/useAssetUpload'
+import { readImageDimensions, readVideoDimensions, type MediaDims } from '../../../services/mediaDimensions'
+import type { ShapeType } from '../../../types/game'
 import UiFileButton from '../../common/UiFileButton.vue'
 
 const emit = defineEmits<{
   'add-text': []
-  'add-image': [assetId: string]
-  'add-video': [assetId: string, label: string]
+  'add-shape': [shapeType: ShapeType]
+  'add-image': [assetId: string, dims: MediaDims | null]
+  'add-video': [assetId: string, label: string, dims: MediaDims | null]
   'add-audio': [assetId: string, label: string]
 }>()
 
@@ -13,8 +16,8 @@ const { uploadAsset } = useAssetUpload()
 
 async function onPick(file: File, kind: 'image' | 'video' | 'audio') {
   const id = await uploadAsset(file)
-  if (kind === 'image') emit('add-image', id)
-  else if (kind === 'video') emit('add-video', id, file.name)
+  if (kind === 'image') emit('add-image', id, await readImageDimensions(file))
+  else if (kind === 'video') emit('add-video', id, file.name, await readVideoDimensions(file))
   else emit('add-audio', id, file.name)
 }
 </script>
@@ -24,6 +27,15 @@ async function onPick(file: File, kind: 'image' | 'video' | 'audio') {
     <button type="button" class="tool" @click="emit('add-text')">
       <span class="icon">🔤</span>
       <span>Текст</span>
+    </button>
+    <div class="divider" />
+    <button type="button" class="tool" @click="emit('add-shape', 'rectangle')">
+      <span class="icon">▭</span>
+      <span>Прямоугольник</span>
+    </button>
+    <button type="button" class="tool" @click="emit('add-shape', 'circle')">
+      <span class="icon">⬤</span>
+      <span>Круг</span>
     </button>
     <div class="divider" />
     <UiFileButton class="tool-file" accept="image/*" @pick="onPick($event, 'image')">

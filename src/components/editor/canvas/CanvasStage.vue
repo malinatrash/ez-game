@@ -8,6 +8,7 @@ import { useSnapGuides } from '../../../composables/useSnapGuides'
 import { useAssetUrl } from '../../../composables/useAssetUrl'
 import KonvaTextNode from './nodes/KonvaTextNode.vue'
 import KonvaImageNode from './nodes/KonvaImageNode.vue'
+import KonvaShapeNode from './nodes/KonvaShapeNode.vue'
 import KonvaMediaPlaceholderNode from './nodes/KonvaMediaPlaceholderNode.vue'
 
 const props = defineProps<{
@@ -96,6 +97,15 @@ const guideLineConfig = (points: number[]) => ({
         />
         <KonvaImageNode
           v-else-if="el.type === 'image'"
+          :ref="(c: any) => setNodeRef(c, el.id)"
+          :element="el"
+          @select="emit('select', el.id)"
+          @dragmove="handleDragMove(el.id, $event)"
+          @dragend="handleDragEnd(el.id, $event)"
+          @transformend="handleTransformEnd(el.id, $event)"
+        />
+        <KonvaShapeNode
+          v-else-if="el.type === 'shape'"
           :ref="(c: any) => setNodeRef(c, el.id)"
           :element="el"
           @select="emit('select', el.id)"

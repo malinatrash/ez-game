@@ -33,11 +33,22 @@ const textStyle = computed(() => {
       props.element.style.align === 'left' ? 'flex-start' : props.element.style.align === 'right' ? 'flex-end' : 'center',
   }
 })
+
+const shapeStyle = computed(() => {
+  if (props.element.type !== 'shape') return {}
+  return {
+    width: '100%',
+    height: '100%',
+    background: props.element.fill,
+    borderRadius: props.element.shapeType === 'circle' ? '50%' : '0',
+  }
+})
 </script>
 
 <template>
   <div class="canvas-el" :style="style">
     <span v-if="element.type === 'text'" :style="textStyle">{{ element.value }}</span>
+    <div v-else-if="element.type === 'shape'" :style="shapeStyle" />
     <img v-else-if="element.type === 'image' && url" :src="url" class="media" alt="" />
     <video
       v-else-if="element.type === 'video' && url"

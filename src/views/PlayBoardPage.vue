@@ -2,20 +2,24 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGameEditorStore } from '../stores/gameEditor'
+import { usePlayersStore } from '../stores/players'
 import { useSessionStore } from '../stores/session'
 import { restorePlaySessionIfNeeded } from '../services/sessionPersistence'
 import PlayerSidebar from '../components/play/sidebar/PlayerSidebar.vue'
 import BoardGrid from '../components/play/board/BoardGrid.vue'
+import CatInBagSpinner from '../components/play/board/CatInBagSpinner.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import WallpaperBackground from '../components/common/WallpaperBackground.vue'
 
 const route = useRoute()
 const router = useRouter()
 const gameStore = useGameEditorStore()
+const playersStore = usePlayersStore()
 const sessionStore = useSessionStore()
 
 const gameId = route.params.gameId as string
 const loading = ref(true)
+const pendingQuestionId = ref<string | null>(null)
 
 onMounted(async () => {
   if (!gameStore.game || gameStore.game.id !== gameId) {
@@ -29,9 +33,26 @@ onMounted(async () => {
   loading.value = false
 })
 
-function selectQuestion(questionId: string) {
+function openQuestion(questionId: string) {
   sessionStore.openQuestion(questionId)
   router.push(`/play/${gameId}/question/${questionId}`)
+}
+
+function selectQuestion(questionId: string) {
+  const question = gameStore.findQuestion(questionId)
+  if (question?.settings.catInTheBag && playersStore.players.length > 0) {
+    pendingQuestionId.value = questionId
+    return
+  }
+  openQuestion(questionId)
+}
+
+function onPlayerPicked(playerId: string) {
+  const questionId = pendingQuestionId.value
+  pendingQuestionId.value = null
+  if (!questionId) return
+  sessionStore.setActivePlayer(playerId)
+  openQuestion(questionId)
 }
 
 function finishGame() {
@@ -65,6 +86,7 @@ const allAnswered = computed(() => {
     </div>
     <EmptyState v-else-if="!loading" message="Игра не найдена" />
     <EmptyState v-else message="Загрузка..." />
+    <CatInBagSpinner v-if="pendingQuestionId" :players="playersStore.players" @picked="onPlayerPicked" />
   </div>
 </template>
 

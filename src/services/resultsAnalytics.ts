@@ -116,6 +116,63 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     })
   }
 
+  // group entries by question — a question can carry several incorrect attempts (different players) plus one correct
+  const byQuestion = new Map<string, ScoreHistoryEntry[]>()
+  for (const e of entries) {
+    const arr = byQuestion.get(e.questionId) ?? []
+    arr.push(e)
+    byQuestion.set(e.questionId, arr)
+  }
+
+  // grand theft — a player answered correctly right after someone else already missed the same question
+  let bestSteal: { thief: string; victims: string[]; cost: number; questionId: string } | null = null
+  for (const [questionId, group] of byQuestion) {
+    const correctEntry = group.find((e) => e.reason === 'correct')
+    if (!correctEntry) continue
+    const priorMisses = group.filter(
+      (e) => e.reason === 'incorrect' && e.timestamp < correctEntry.timestamp && e.playerId !== correctEntry.playerId
+    )
+    if (priorMisses.length === 0) continue
+    const cost = findQuestionMeta(game, questionId)?.cost ?? 0
+    if (!bestSteal || cost > bestSteal.cost) {
+      bestSteal = { thief: correctEntry.playerId, victims: [...new Set(priorMisses.map((e) => e.playerId))], cost, questionId }
+    }
+  }
+  if (bestSteal) {
+    const meta = findQuestionMeta(game, bestSteal.questionId)
+    const victimNames = bestSteal.victims.map(name).join(' и ')
+    funFacts.push({
+      icon: '🕵️',
+      text: meta
+        ? `Кража века: ${name(bestSteal.thief)} перехватил «${meta.title}» (${meta.category}) после промаха ${victimNames}`
+        : `Кража века: ${name(bestSteal.thief)} перехватил вопрос сразу после чужого промаха`,
+    })
+  }
+
+  // nemesis rivalry — a pair of players who kept clashing on the same questions
+  const pairClashes = new Map<string, { a: string; b: string; count: number }>()
+  for (const group of byQuestion.values()) {
+    const uniquePlayers = [...new Set(group.map((e) => e.playerId))]
+    for (let i = 0; i < uniquePlayers.length; i++) {
+      for (let j = i + 1; j < uniquePlayers.length; j++) {
+        const key = [uniquePlayers[i], uniquePlayers[j]].sort().join('|')
+        const cur = pairClashes.get(key) ?? { a: uniquePlayers[i], b: uniquePlayers[j], count: 0 }
+        cur.count += 1
+        pairClashes.set(key, cur)
+      }
+    }
+  }
+  let nemesisPair: { a: string; b: string; count: number } | null = null
+  for (const pair of pairClashes.values()) {
+    if (!nemesisPair || pair.count > nemesisPair.count) nemesisPair = pair
+  }
+  if (nemesisPair && nemesisPair.count >= 2) {
+    funFacts.push({
+      icon: '🥊',
+      text: `${name(nemesisPair.a)} и ${name(nemesisPair.b)} — заклятые соперники: скрещивали шпаги на одних и тех же вопросах ${nemesisPair.count} раза`,
+    })
+  }
+
   // hardest question — most incorrect attempts on a single question
   const incorrectByQuestion = new Map<string, number>()
   for (const e of entries) {
@@ -192,6 +249,22 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     })
   }
 
+  // one-trick pony — opposite of jack of all trades: all correct answers came from a single category
+  if (totalCategories >= 3) {
+    for (const [playerId, cats] of categoriesByPlayer) {
+      if (cats.size !== 1) continue
+      const cat = [...cats][0]
+      const correctCount = categoryCorrectByPlayer.get(cat)?.get(playerId) ?? 0
+      if (correctCount >= 2) {
+        funFacts.push({
+          icon: '🔒',
+          text: `${name(playerId)} — однолюб: все свои очки взял только в категории «${cat}», остальные не тронул`,
+        })
+        break
+      }
+    }
+  }
+
   // bonus hunter — most points claimed from bonus questions
   const bonusByPlayer = new Map<string, number>()
   for (const e of entries) {
@@ -261,6 +334,22 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     if (!sniper || ratio > sniper.ratio) sniper = { id, ratio, stat }
     if (!misser || ratio < misser.ratio) misser = { id, ratio, stat }
   }
+
+  // efficiency king — best final score per graded attempt (rewards accuracy AND penalizes misses, unlike high roller/bargain hunter which only look at the cost of hits)
+  let efficiencyKing: { id: string; value: number } | null = null
+  for (const [id, stat] of accuracy) {
+    if (stat.total < 2) continue
+    const player = players.find((p) => p.id === id)
+    if (!player) continue
+    const value = player.score / stat.total
+    if (!efficiencyKing || value > efficiencyKing.value) efficiencyKing = { id, value }
+  }
+  if (efficiencyKing && efficiencyKing.value > 0) {
+    funFacts.push({
+      icon: '🥷',
+      text: `${name(efficiencyKing.id)} — эталон эффективности: в среднем ${Math.round(efficiencyKing.value)} очков за каждую попытку ответить`,
+    })
+  }
   if (sniper && sniper.ratio >= 0.7) {
     funFacts.push({
       icon: '🎯',
@@ -320,6 +409,30 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     }
     if (midLeader && ranked[0] && midLeader !== ranked[0].id) {
       funFacts.push({ icon: '🔄', text: `Камбэк дня: ${ranked[0].name} не лидировал в середине игры, но вырвался вперёд к финалу` })
+    }
+  }
+
+  // decided on the last question — leader right before the final entry differs from the final champion
+  if (entries.length >= 2 && players.length >= 2) {
+    const runningScore = new Map<string, number>()
+    for (const p of players) runningScore.set(p.id, 0)
+    for (let i = 0; i < entries.length - 1; i++) {
+      const e = entries[i]
+      runningScore.set(e.playerId, (runningScore.get(e.playerId) ?? 0) + e.delta)
+    }
+    let leaderBeforeLast: string | null = null
+    let leaderBeforeLastScore = -Infinity
+    for (const [id, score] of runningScore) {
+      if (score > leaderBeforeLastScore) {
+        leaderBeforeLastScore = score
+        leaderBeforeLast = id
+      }
+    }
+    if (leaderBeforeLast && ranked[0] && leaderBeforeLast !== ranked[0].id) {
+      funFacts.push({
+        icon: '🎬',
+        text: `Развязка в последнем вопросе: до финального ответа лидировал ${name(leaderBeforeLast)}, но чемпионом стал ${ranked[0].name}`,
+      })
     }
   }
 
@@ -427,6 +540,45 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     }
   }
 
+  // cost tier accuracy — are cheap questions actually easier than expensive ones?
+  const allCosts = (game?.categories.flatMap((c) => c.questions.map((q) => q.cost)) ?? []).sort((a, b) => a - b)
+  if (allCosts.length >= 3) {
+    const tercile = Math.max(1, Math.floor(allCosts.length / 3))
+    const lowMax = allCosts[tercile - 1]
+    const highMin = allCosts[allCosts.length - tercile]
+    let lowCorrect = 0
+    let lowTotal = 0
+    let highCorrect = 0
+    let highTotal = 0
+    for (const e of entries) {
+      if (e.reason !== 'correct' && e.reason !== 'incorrect') continue
+      const meta = findQuestionMeta(game, e.questionId)
+      if (!meta) continue
+      if (meta.cost <= lowMax) {
+        lowTotal += 1
+        if (e.reason === 'correct') lowCorrect += 1
+      } else if (meta.cost >= highMin) {
+        highTotal += 1
+        if (e.reason === 'correct') highCorrect += 1
+      }
+    }
+    if (lowTotal >= 2 && highTotal >= 2) {
+      const lowPct = Math.round((lowCorrect / lowTotal) * 100)
+      const highPct = Math.round((highCorrect / highTotal) * 100)
+      if (lowPct - highPct >= 20) {
+        funFacts.push({
+          icon: '🪜',
+          text: `Чем выше цена, тем больше промахов: дешёвые вопросы брали в ${lowPct}% случаев, а дорогие — лишь в ${highPct}%`,
+        })
+      } else if (highPct - lowPct >= 20) {
+        funFacts.push({
+          icon: '🪜',
+          text: `Неожиданный расклад: дорогие вопросы брали чаще (${highPct}%), чем дешёвые (${lowPct}%) — простые с виду вопросы оказались с подвохом`,
+        })
+      }
+    }
+  }
+
   // longest pause between two consecutive answers (tension builder)
   let longestGap = 0
   let longestGapEntry: ScoreHistoryEntry | null = null
@@ -463,6 +615,18 @@ export function analyzeSession(players: Player[], entriesInput: ScoreHistoryEntr
     } else if (ratio >= 0.5) {
       funFacts.push({ icon: '🚀', text: `Разгром: ${ranked[0].name} обошёл ${ranked[1].name} на ${gap} очков — остальным оставалось только наблюдать` })
     }
+  }
+
+  // final blow — the last correct answer of the game
+  const lastCorrect = correct[correct.length - 1]
+  if (lastCorrect) {
+    const meta = findQuestionMeta(game, lastCorrect.questionId)
+    funFacts.push({
+      icon: '🏁',
+      text: meta
+        ? `Последний аккорд игры — верный ответ ${name(lastCorrect.playerId)} на «${meta.title}» (${meta.category})`
+        : `Последний аккорд игры остался за ${name(lastCorrect.playerId)}`,
+    })
   }
 
   if (totalQuestions > 0) {

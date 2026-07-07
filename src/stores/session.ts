@@ -20,6 +20,10 @@ export const useSessionStore = defineStore('session', {
       this.turn.currentQuestionId = questionId
     },
 
+    setActivePlayer(playerId: string) {
+      this.turn.activePlayerId = playerId
+    },
+
     resolveQuestion(questionId: string, winnerId: string | null, playerOrder: string[]) {
       if (!this.answeredQuestionIds.includes(questionId)) {
         this.answeredQuestionIds.push(questionId)

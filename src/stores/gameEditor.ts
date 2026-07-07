@@ -18,6 +18,7 @@ function createQuestion(cost: number): Question {
       autoReveal: false,
       hideCostAfterReveal: false,
       isBonus: false,
+      catInTheBag: false,
     },
     answered: false,
   }

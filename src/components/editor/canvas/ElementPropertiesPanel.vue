@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CanvasElement, TextAlign } from '../../../types/game'
+import { computeTextBlockHeight } from '../../../services/textMeasure'
 import ImageUploader from '../../common/ImageUploader.vue'
 import VideoUploader from '../../common/VideoUploader.vue'
 import AudioUploader from '../../common/AudioUploader.vue'
@@ -27,6 +28,21 @@ function onNumberInput(key: 'x' | 'y' | 'w' | 'h' | 'rotation', event: Event) {
 
 function patchTextAlign(align: string) {
   if (props.element?.type === 'text') patch({ style: { ...props.element.style, align: align as TextAlign } })
+}
+
+function onTextInput(event: Event) {
+  if (props.element?.type !== 'text') return
+  const value = (event.target as HTMLTextAreaElement).value
+  const h = computeTextBlockHeight(value, props.element.style.fontSize, props.element.w)
+  patch({ value, h } as Partial<CanvasElement>)
+}
+
+function onFontSizeInput(event: Event) {
+  if (props.element?.type !== 'text') return
+  const fontSize = (event.target as HTMLInputElement).valueAsNumber
+  if (Number.isNaN(fontSize)) return
+  const h = computeTextBlockHeight(props.element.value, fontSize, props.element.w)
+  patch({ style: { ...props.element.style, fontSize }, h } as Partial<CanvasElement>)
 }
 
 function patchPlayback(key: 'autoplay' | 'loop' | 'muted', value: boolean) {
@@ -57,16 +73,12 @@ function patchPlayback(key: 'autoplay' | 'loop' | 'muted', value: boolean) {
           :value="element.value"
           rows="3"
           placeholder="Введите текст…"
-          @input="patch({ value: ($event.target as HTMLTextAreaElement).value })"
+          @input="onTextInput"
         />
         <div class="row">
           <label class="field">
             <span>Размер</span>
-            <input
-              type="number"
-              :value="element.style.fontSize"
-              @input="patch({ style: { ...element.style, fontSize: ($event.target as HTMLInputElement).valueAsNumber } })"
-            />
+            <input type="number" :value="element.style.fontSize" @input="onFontSizeInput" />
           </label>
           <label class="field">
             <span>Цвет</span>
@@ -93,6 +105,20 @@ function patchPlayback(key: 'autoplay' | 'loop' | 'muted', value: boolean) {
           :model-value="element.assetId"
           @update:model-value="(id) => id && patch({ assetId: id })"
         />
+      </section>
+
+      <section v-else-if="element.type === 'shape'" class="section">
+        <h4>Фигура</h4>
+        <div class="row">
+          <label class="field">
+            <span>Цвет</span>
+            <input
+              type="color"
+              :value="element.fill"
+              @input="patch({ fill: ($event.target as HTMLInputElement).value })"
+            />
+          </label>
+        </div>
       </section>
 
       <section v-else class="section">

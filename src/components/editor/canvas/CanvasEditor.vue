@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { CanvasElement, SideBackground } from '../../../types/game'
+import type { CanvasElement, ShapeType, SideBackground } from '../../../types/game'
 import { useFitScale } from '../../../composables/useFitScale'
+import type { MediaDims } from '../../../services/mediaDimensions'
 import {
   addElement,
   bringToFront,
   createAudioElement,
   createImageElement,
+  createShapeElement,
   createTextElement,
   createVideoElement,
   duplicateElement,
+  fitMediaBox,
   removeElement,
   sendToBack,
   updateElement,
@@ -50,13 +53,18 @@ function onAddText() {
   update(addElement(props.elements, el))
   select(el.id)
 }
-function onAddImage(assetId: string) {
-  const el = createImageElement(props.elements, assetId)
+function onAddShape(shapeType: ShapeType) {
+  const el = createShapeElement(props.elements, shapeType)
   update(addElement(props.elements, el))
   select(el.id)
 }
-function onAddVideo(assetId: string, label: string) {
-  const el = createVideoElement(props.elements, assetId, label)
+function onAddImage(assetId: string, dims: MediaDims | null) {
+  const el = createImageElement(props.elements, assetId, fitMediaBox(dims))
+  update(addElement(props.elements, el))
+  select(el.id)
+}
+function onAddVideo(assetId: string, label: string, dims: MediaDims | null) {
+  const el = createVideoElement(props.elements, assetId, label, fitMediaBox(dims))
   update(addElement(props.elements, el))
   select(el.id)
 }
@@ -86,7 +94,13 @@ function onSendToBack(id: string) {
 <template>
   <div class="editor">
     <div class="toolbar-row">
-      <CanvasToolbar @add-text="onAddText" @add-image="onAddImage" @add-video="onAddVideo" @add-audio="onAddAudio" />
+      <CanvasToolbar
+        @add-text="onAddText"
+        @add-shape="onAddShape"
+        @add-image="onAddImage"
+        @add-video="onAddVideo"
+        @add-audio="onAddAudio"
+      />
       <CanvasBackgroundControl :background="background" @update:background="emit('update:background', $event)" />
     </div>
     <div class="workspace">

@@ -1,11 +1,27 @@
-import type { CanvasElement, MediaPlaybackOptions, TextStyle } from '../types/game'
+import type { CanvasElement, MediaPlaybackOptions, ShapeType, TextStyle } from '../types/game'
 import { createId } from './id'
 
 export const DEFAULT_ELEMENT_W = 320
 export const DEFAULT_ELEMENT_H = 120
+export const DEFAULT_SHAPE_SIZE = 160
+export const DEFAULT_MEDIA_FIT_MAX = 360
 
 const DEFAULT_TEXT_STYLE: TextStyle = { fontSize: 24, color: '#f5f5f5', align: 'center' }
 const DEFAULT_PLAYBACK: MediaPlaybackOptions = { autoplay: false, loop: false, muted: false }
+const DEFAULT_SHAPE_FILL = '#ffffff'
+
+/** Вписывает бокс исходных пропорций медиа в квадрат maxSize — дефолтный размер элемента сохраняет aspect ratio источника. */
+export function fitMediaBox(dims?: { w: number; h: number } | null, maxSize = DEFAULT_MEDIA_FIT_MAX): Partial<CanvasElement> {
+  if (!dims || !dims.w || !dims.h) return {}
+  const ratio = dims.w / dims.h
+  let w = maxSize
+  let h = maxSize / ratio
+  if (h > maxSize) {
+    h = maxSize
+    w = maxSize * ratio
+  }
+  return { w: Math.round(w), h: Math.round(h) }
+}
 
 export function nextZIndex(elements: CanvasElement[]): number {
   return elements.length ? Math.max(...elements.map((el) => el.zIndex)) + 1 : 0
@@ -73,6 +89,20 @@ export function createAudioElement(
     label,
     playback: { ...DEFAULT_PLAYBACK },
     ...baseTransform(elements, overrides),
+  }
+}
+
+export function createShapeElement(
+  elements: CanvasElement[],
+  shapeType: ShapeType,
+  overrides: Partial<CanvasElement> = {},
+): CanvasElement {
+  return {
+    id: createId(),
+    type: 'shape',
+    shapeType,
+    fill: DEFAULT_SHAPE_FILL,
+    ...baseTransform(elements, { w: DEFAULT_SHAPE_SIZE, h: DEFAULT_SHAPE_SIZE, ...overrides }),
   }
 }
 
