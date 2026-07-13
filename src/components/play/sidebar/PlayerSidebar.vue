@@ -4,6 +4,8 @@ import { usePlayersStore } from '../../../stores/players'
 import { useSessionStore } from '../../../stores/session'
 import { useHistoryStore } from '../../../stores/history'
 import { useBackgroundMusicStore } from '../../../stores/backgroundMusic'
+import { confirmDialog } from '../../../composables/useConfirm'
+import type { Player } from '../../../types/player'
 import UiButton from '../../common/UiButton.vue'
 import PlayerBadge from './PlayerBadge.vue'
 
@@ -28,6 +30,19 @@ function playerColor(id: string) {
   return players.players.find((p) => p.id === id)?.color ?? 'var(--color-border)'
 }
 
+async function removePlayer(player: Player) {
+  if (players.players.length <= 1) return
+  const confirmed = await confirmDialog(
+    `Удалить игрока «${player.name}» из текущей игры? Его очки и записи в журнале будут удалены.`,
+  )
+  if (!confirmed) return
+
+  const playerOrder = players.players.map((item) => item.id)
+  session.removePlayer(player.id, playerOrder)
+  history.removePlayerEntries(player.id)
+  players.removePlayer(player.id)
+}
+
 const reasonLabel: Record<string, string> = {
   correct: 'верно',
   incorrect: 'неверно',
@@ -49,6 +64,8 @@ const reasonLabel: Record<string, string> = {
         :player="player"
         :active="player.id === session.turn.activePlayerId"
         :rank="ranks.get(player.id) ?? 0"
+        :removable="players.players.length > 1"
+        @remove="removePlayer(player)"
       />
     </div>
 

@@ -16,6 +16,11 @@ export const useHistoryStore = defineStore('history', {
       this.redoStack = []
     },
 
+    removePlayerEntries(playerId: string) {
+      this.entries = this.entries.filter((entry) => entry.playerId !== playerId)
+      this.redoStack = this.redoStack.filter((entry) => entry.playerId !== playerId)
+    },
+
     record(entry: RecordInput) {
       const player = usePlayersStore().players.find((p) => p.id === entry.playerId)
       if (!player) return

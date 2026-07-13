@@ -5,6 +5,7 @@ import { useGameEditorStore } from '../stores/gameEditor'
 import { usePlayersStore } from '../stores/players'
 import { useSessionStore } from '../stores/session'
 import { useBackgroundMusicStore } from '../stores/backgroundMusic'
+import { useQuestionMusicStore } from '../stores/questionMusic'
 import { restorePlaySessionIfNeeded } from '../services/sessionPersistence'
 import { hasPlayableMedia } from '../services/canvasElements'
 import PlayerSidebar from '../components/play/sidebar/PlayerSidebar.vue'
@@ -19,6 +20,7 @@ const gameStore = useGameEditorStore()
 const playersStore = usePlayersStore()
 const sessionStore = useSessionStore()
 const musicStore = useBackgroundMusicStore()
+const questionMusicStore = useQuestionMusicStore()
 
 const gameId = route.params.gameId as string
 const questionId = computed(() => route.params.questionId as string)
@@ -45,14 +47,19 @@ const question = computed(() => gameStore.findQuestion(questionId.value))
 watch(
   question,
   (q) => {
-    if (q && (hasPlayableMedia(q.content) || hasPlayableMedia(q.answer))) {
+    if (q && (q.musicAssetId || hasPlayableMedia(q.content) || hasPlayableMedia(q.answer))) {
       musicStore.pauseForMedia()
     }
+    // play() no-ops if this question is already the one playing — так что
+    // переключение content ↔ answer (просто локальный ref side, без ремаунта
+    // этого компонента) не перезапускает трек.
+    if (q) questionMusicStore.play(q.id, q.musicAssetId)
   },
   { immediate: true },
 )
 
 onUnmounted(() => {
+  questionMusicStore.stop()
   musicStore.resumeFromMedia()
 })
 

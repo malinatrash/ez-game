@@ -54,6 +54,7 @@ export interface Question {
   answer: CanvasElement[]
   contentBackground?: SideBackground | null
   answerBackground?: SideBackground | null
+  musicAssetId?: string
   settings: QuestionSettings
   answered: boolean
 }

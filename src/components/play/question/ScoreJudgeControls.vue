@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import type { Player } from '../../../types/player'
 import type { Question } from '../../../types/game'
 import { useHistoryStore } from '../../../stores/history'
@@ -12,6 +12,17 @@ const pulse = reactive<Record<string, 'plus' | 'minus' | ''>>({})
 // за вопрос допускается только один "плюс" (правильный ответ), но минус — только один раз на игрока
 const winnerId = ref<string | null>(null)
 const minusedIds = reactive(new Set<string>())
+
+watch(
+  () => props.players.map((player) => player.id),
+  (playerIds) => {
+    const currentIds = new Set(playerIds)
+    if (winnerId.value && !currentIds.has(winnerId.value)) winnerId.value = null
+    for (const playerId of minusedIds) {
+      if (!currentIds.has(playerId)) minusedIds.delete(playerId)
+    }
+  },
+)
 
 function firePulse(playerId: string, kind: 'plus' | 'minus') {
   pulse[playerId] = kind

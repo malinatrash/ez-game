@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import type { CanvasElement, Question, SideBackground } from '../../../types/game'
 import CanvasEditor from '../canvas/CanvasEditor.vue'
 import UiSwitch from '../../common/UiSwitch.vue'
+import AudioUploader from '../../common/AudioUploader.vue'
 
 const props = defineProps<{ question: Question }>()
 
@@ -46,6 +47,15 @@ function onTimeLimitInput(event: Event) {
         <UiSwitch v-model="question.settings.hideCostAfterReveal">Скрывать стоимость после ответа</UiSwitch>
         <UiSwitch v-model="question.settings.isBonus">Бонусный вопрос</UiSwitch>
         <UiSwitch v-model="question.settings.catInTheBag">🐱 Кот в мешке</UiSwitch>
+      </section>
+
+      <section class="card music-card">
+        <h4>Музыка на весь вопрос</h4>
+        <AudioUploader
+          :model-value="question.musicAssetId"
+          @update:model-value="(id) => (question.musicAssetId = id)"
+        />
+        <p class="hint">Играет без перезапуска и на экране вопроса, и на экране ответа.</p>
       </section>
 
       <section class="card notes-card">
@@ -160,6 +170,11 @@ function onTimeLimitInput(event: Event) {
 }
 .settings-card {
   gap: var(--space-3);
+}
+.music-card .hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 .field {
   display: flex;

@@ -77,11 +77,13 @@ const allAnswered = computed(() => {
           <button class="primary" @click="finishGame">Завершить игру</button>
         </div>
         <p v-if="allAnswered" class="hint">Все вопросы отвечены — можно завершить игру.</p>
-        <BoardGrid
-          :categories="gameStore.game.categories"
-          :answered-question-ids="sessionStore.answeredQuestionIds"
-          @select="selectQuestion"
-        />
+        <div class="board-wrap">
+          <BoardGrid
+            :categories="gameStore.game.categories"
+            :answered-question-ids="sessionStore.answeredQuestionIds"
+            @select="selectQuestion"
+          />
+        </div>
       </main>
     </div>
     <EmptyState v-else-if="!loading" message="Игра не найдена" />
@@ -93,7 +95,8 @@ const allAnswered = computed(() => {
 <style scoped>
 .layout {
   display: flex;
-  min-height: calc(100vh - var(--size-breadcrumbs-height));
+  height: calc(100vh - var(--size-breadcrumbs-height));
+  overflow: hidden;
 }
 .board-area {
   padding: var(--space-6);
@@ -101,15 +104,24 @@ const allAnswered = computed(() => {
   flex-direction: column;
   gap: var(--space-4);
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   background: color-mix(in srgb, var(--color-bg) 55%, transparent);
 }
 .top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 .hint {
   color: var(--color-warning);
+  flex-shrink: 0;
+}
+.board-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 button {
   height: var(--size-button-height);

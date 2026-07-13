@@ -10,6 +10,7 @@ export function collectAssetIds(game: Game): string[] {
       for (const el of [...question.content, ...question.answer]) {
         if (el.type === 'image' || el.type === 'video' || el.type === 'audio') ids.add(el.assetId)
       }
+      if (question.musicAssetId) ids.add(question.musicAssetId)
     }
   }
   return [...ids]

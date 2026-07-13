@@ -24,6 +24,15 @@ export const useSessionStore = defineStore('session', {
       this.turn.activePlayerId = playerId
     },
 
+    removePlayer(playerId: string, playerOrder: string[]) {
+      if (this.turn.activePlayerId !== playerId) return
+
+      const removedIndex = playerOrder.indexOf(playerId)
+      if (removedIndex < 0) return
+      const remainingOrder = playerOrder.filter((id) => id !== playerId)
+      this.turn.activePlayerId = remainingOrder.length > 0 ? remainingOrder[removedIndex % remainingOrder.length] : null
+    },
+
     resolveQuestion(questionId: string, winnerId: string | null, playerOrder: string[]) {
       if (!this.answeredQuestionIds.includes(questionId)) {
         this.answeredQuestionIds.push(questionId)

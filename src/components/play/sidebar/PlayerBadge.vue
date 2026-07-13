@@ -2,8 +2,10 @@
 import { ref, watch } from 'vue'
 import type { Player } from '../../../types/player'
 import { useAssetUrl } from '../../../composables/useAssetUrl'
+import UiButton from '../../common/UiButton.vue'
 
-const props = defineProps<{ player: Player; active: boolean; rank: number }>()
+const props = defineProps<{ player: Player; active: boolean; rank: number; removable: boolean }>()
+const emit = defineEmits<{ remove: [] }>()
 
 const avatarUrl = useAssetUrl(() => props.player.avatarAssetId)
 
@@ -53,6 +55,19 @@ const medal = (rank: number) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : ran
       <span v-if="scoreChange === 'up'" class="flyup">+</span>
       <span v-if="scoreChange === 'down'" class="flydown">−</span>
     </span>
+
+    <UiButton
+      class="remove"
+      size="sm"
+      variant="danger"
+      icon-only
+      :disabled="!removable"
+      :title="removable ? `Удалить игрока ${player.name}` : 'Нельзя удалить единственного игрока'"
+      :aria-label="removable ? `Удалить игрока ${player.name}` : 'Нельзя удалить единственного игрока'"
+      @click="emit('remove')"
+    >
+      ✕
+    </UiButton>
   </div>
 </template>
 
@@ -82,6 +97,23 @@ const medal = (rank: number) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : ran
   box-shadow: var(--shadow-glow);
   transform: scale(1.02);
   background: color-mix(in srgb, var(--player-color) 8%, var(--color-surface));
+}
+.remove {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  opacity: 0.45;
+  transform: scale(0.82);
+  transform-origin: top right;
+  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+.badge:hover .remove,
+.remove:focus-visible {
+  opacity: 1;
+  transform: scale(0.92);
+}
+.remove:disabled {
+  opacity: 0.2;
 }
 
 .rank {
